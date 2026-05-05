@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ISTQB CTFL v4.0 — Examen difficile inédit</title>
+<style>
+:root {
+  --bg:#eef2f7; --card:#ffffff; --text:#1f2937; --muted:#6b7280; --blue:#2563eb;
+  --blue2:#1d4ed8; --green:#16a34a; --red:#dc2626; --border:#dbe3ef;
+}
+* { box-sizing:border-box; }
+body { margin:0; font-family:Arial, Helvetica, sans-serif; background:var(--bg); color:var(--text); }
+.header { background:#1e293b; color:white; padding:18px 24px; box-shadow:0 2px 10px rgba(0,0,0,.18); position:sticky; top:0; z-index:99; }
+.header-inner { max-width:980px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; gap:14px; }
+h1 { margin:0; font-size:24px; }
+.timer { font-size:24px; font-weight:bold; color:#facc15; background:#0f172a; padding:10px 16px; border-radius:10px; min-width:110px; text-align:center; }
+.container { max-width:980px; margin:24px auto; padding:0 18px; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:16px; box-shadow:0 8px 24px rgba(15,23,42,.08); padding:24px; }
+.meta { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+.badge { background:#dbeafe; color:#1e40af; padding:7px 10px; border-radius:999px; font-size:13px; font-weight:bold; }
+.progress-wrap { background:#e5e7eb; height:12px; border-radius:999px; overflow:hidden; margin:14px 0 22px; }
+.progress { height:100%; background:var(--blue); width:0%; transition:.25s; }
+.qtop { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:10px; color:var(--muted); }
+.qtype { font-weight:bold; color:#475569; }
+.question-title { font-size:20px; font-weight:bold; margin:16px 0 20px; line-height:1.45; white-space:pre-line; }
+.option { display:flex; gap:12px; align-items:flex-start; padding:14px; margin:11px 0; border:2px solid #e5e7eb; border-radius:12px; cursor:pointer; background:#f9fafb; transition:.15s; white-space:pre-line; }
+.option:hover { border-color:#93c5fd; background:#eff6ff; }
+.option input { margin-top:2px; transform:scale(1.2); }
+.option.selected { border-color:var(--blue); background:#eff6ff; }
+.nav { display:flex; justify-content:space-between; gap:12px; margin-top:24px; }
+button { border:0; border-radius:10px; padding:13px 18px; font-weight:bold; font-size:15px; cursor:pointer; }
+button:disabled { opacity:.45; cursor:not-allowed; }
+.prev { background:#e5e7eb; color:#374151; }
+.next { background:var(--blue); color:white; }
+.next:hover { background:var(--blue2); }
+.submit { background:var(--green); color:white; }
+.grid { display:grid; grid-template-columns:repeat(10,1fr); gap:8px; margin-top:18px; }
+.jump { padding:9px 0; border-radius:8px; background:#e5e7eb; color:#374151; font-size:13px; }
+.jump.current { background:var(--blue); color:white; }
+.jump.answered { background:#bbf7d0; color:#166534; }
+.result { display:none; }
+.score { font-size:48px; font-weight:900; margin:10px 0; }
+.pass { color:var(--green); } .fail { color:var(--red); }
+.review { border-left:5px solid #94a3b8; background:#f8fafc; padding:14px; border-radius:10px; margin:12px 0; }
+.review.ok { border-left-color:var(--green); }
+.review.ko { border-left-color:var(--red); }
+.small { color:var(--muted); font-size:14px; }
+.warning { background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; padding:12px; border-radius:12px; margin:12px 0; }
+@media(max-width:700px) {
+  .header-inner { flex-direction:column; align-items:flex-start; }
+  .grid { grid-template-columns:repeat(5,1fr); }
+  .nav { flex-direction:column; }
+}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-inner">
+    <div>
+      <h1>ISTQB CTFL v4.0 — Examen difficile inédit</h1>
+      <div class="small" style="color:#cbd5e1">40 questions nouvelles inspirées du style officiel — 60 min</div>
+    </div>
+    <div class="timer" id="timer">60:00</div>
+  </div>
+</div>
+
+<div class="container">
+  <div id="exam" class="card">
+    <div class="meta">
+      <span class="badge">40 questions</span>
+      <span class="badge">60 minutes</span>
+      <span class="badge">Seuil 65%</span>
+      <span class="badge">Réponses variées</span>
+    </div>
+    <div class="progress-wrap"><div class="progress" id="progress"></div></div>
+    <div class="qtop">
+      <span id="qcount"></span>
+      <span class="qtype" id="qtype"></span>
+    </div>
+    <div class="question-title" id="question"></div>
+    <div id="options"></div>
+    <div class="nav">
+      <button class="prev" id="prevBtn" onclick="prevQuestion()">← Précédent</button>
+      <button class="next" id="nextBtn" onclick="nextQuestion()">Suivant →</button>
+      <button class="submit" id="submitBtn" onclick="submitExam()" style="display:none">Valider l’examen</button>
+    </div>
+    <div class="grid" id="grid"></div>
+  </div>
+  <div id="result" class="card result"></div>
+</div>
+
+<script>
+const questions = [{"q": "Un système de réservation passe tous les tests prévus, mais en production les clients abandonnent car le parcours réel est trop long. Quelle conclusion est la plus correcte selon ISTQB ?", "type": "single", "opts": ["La vérification peut être correcte mais la validation insuffisante", "Le test exhaustif aurait été atteint", "Il s’agit uniquement d’un défaut de code", "Les tests prouvent que le produit est correct"], "ans": [0], "exp": "Un système peut satisfaire les exigences spécifiées sans répondre correctement aux besoins réels des utilisateurs."}, {"q": "Une équipe répète la même suite de régression depuis 12 releases et ne trouve plus de nouveaux défauts. Quel principe explique le mieux ce risque ?", "type": "single", "opts": ["Illusion de l’absence de défaut", "Test dépend du contexte", "Usure des tests", "Regroupement des défauts"], "ans": [2], "exp": "Les mêmes tests répétés deviennent moins efficaces pour révéler de nouveaux défauts."}, {"q": "Dans une application médicale, une règle métier mal comprise dans une exigence provoque une alerte patient incorrecte. Quelle chaîne est la plus juste ?", "type": "single", "opts": ["Erreur humaine → défaut dans l’exigence/code → défaillance observée", "Cause racine → résultat attendu → validation", "Défaillance → défaut → erreur humaine", "Débogage → test → défaut"], "ans": [0], "exp": "Une erreur humaine peut introduire un défaut qui, exécuté, produit une défaillance."}, {"q": "Quels objectifs sont des objectifs habituels du test ?", "type": "multi", "opts": ["Prouver l’absence totale de défauts", "Fournir des informations pour la décision", "Réduire le niveau de risque d’une qualité insuffisante", "Vérifier la conformité réglementaire"], "ans": [1, 2, 3], "exp": "Le test réduit les risques et informe, mais ne prouve pas l’absence de défauts."}, {"q": "Un défaut est détecté dans une revue d’exigences avant codage. Quelle affirmation est exacte ?", "type": "single", "opts": ["C’est du test dynamique", "C’est du test statique", "C’est une défaillance", "C’est un test de régression"], "ans": [1], "exp": "Le test statique trouve des défauts sans exécuter le logiciel."}, {"q": "Dans un modèle itératif avec incréments fréquents, quelle conséquence est la plus probable pour le test ?", "type": "single", "opts": ["Tests dynamiques uniquement à la fin", "Aucune automatisation utile", "Feedback rapide et tests de régression importants", "Suppression des tests statiques"], "ans": [2], "exp": "Les incréments fréquents nécessitent des retours rapides et une régression solide."}, {"q": "Quel exemple illustre le mieux le shift-left ?", "type": "single", "opts": ["Supprimer les tests tardifs", "Définir des tests à partir des exigences avant le code", "Tester seulement après livraison", "Attendre l’intégration complète"], "ans": [1], "exp": "Shift-left signifie effectuer certaines activités de test plus tôt dans le cycle de vie."}, {"q": "Quel énoncé décrit correctement BDD ?", "type": "single", "opts": ["Mesurer uniquement la couverture des branches", "Écrire uniquement des tests de composants à partir du code", "Tester uniquement après déploiement", "Exprimer le comportement attendu en langage naturel, souvent Given/When/Then"], "ans": [3], "exp": "BDD exprime le comportement attendu sous une forme compréhensible par les parties prenantes."}, {"q": "Une correction supprime une défaillance observée dans TC-12. L’équipe réexécute TC-12. Quel type de test est-ce ?", "type": "single", "opts": ["Test système", "Test non fonctionnel", "Test de confirmation", "Test de régression"], "ans": [2], "exp": "Le test de confirmation vérifie que le défaut original est corrigé."}, {"q": "Après la correction d’un module de paiement, l’équipe teste aussi les factures, remboursements et rapports. Quel type de test est principalement concerné ?", "type": "single", "opts": ["Test alpha", "Test statique", "Test de régression", "Test de confirmation uniquement"], "ans": [2], "exp": "Le test de régression cherche les effets de bord d’une modification."}, {"q": "Quel niveau de test cible principalement les interfaces entre le système testé et des services externes ?", "type": "single", "opts": ["Test d’acceptation utilisateur", "Test boîte blanche", "Test d’intégration système", "Test de composants"], "ans": [2], "exp": "Les tests d’intégration système vérifient les interfaces avec d’autres systèmes/services."}, {"q": "Un test vérifie la résistance à la charge de 5 000 utilisateurs simultanés. Quel type de test est concerné ?", "type": "single", "opts": ["Test non fonctionnel", "Test de confirmation", "Test fonctionnel", "Test par table de décision"], "ans": [0], "exp": "La charge/performance fait partie des caractéristiques non fonctionnelles."}, {"q": "Une revue possède un scribe, une préparation individuelle, un objectif d’évaluation qualité et un rapport. L’auteur dirige la réunion. Quel type est le plus probable ?", "type": "single", "opts": ["Inspection", "Revue informelle", "Test exploratoire", "Relecture technique"], "ans": [3], "exp": "Ces caractéristiques correspondent le mieux à une relecture technique."}, {"q": "Quel élément n’est PAS un avantage des tests statiques ?", "type": "single", "opts": ["Réduire le coût de correction", "Détecter les défaillances par exécution du logiciel", "Trouver des défauts tôt", "Trouver des incohérences dans les exigences"], "ans": [1], "exp": "Les tests statiques détectent des défauts sans exécution ; les défaillances sont liées au test dynamique."}, {"q": "Un champ accepte les entiers de 10 à 99 inclus. Quelles valeurs couvrent les limites avec BVA 2 valeurs ?", "type": "multi", "opts": ["100", "99", "9", "10"], "ans": [0, 1, 2, 3], "exp": "Pour chaque limite : valeur limite et voisine dans la partition adjacente."}, {"q": "Un champ accepte les montants de 1 à 500 inclus. Le code a été écrit avec montant == 500 au lieu de montant <= 500. Quelle valeur révèle le mieux ce défaut ?", "type": "single", "opts": ["1", "500", "499", "501"], "ans": [2], "exp": "La valeur 499 révèle qu’une valeur interne valide proche de la limite est rejetée."}, {"q": "Une table de décision a 5 conditions booléennes indépendantes. Combien de règles existe-t-il avant réduction ?", "type": "single", "opts": ["25", "32", "10", "5"], "ans": [1], "exp": "Avec n conditions booléennes, il y a 2^n combinaisons."}, {"q": "Dans une table de décision, que signifie généralement “-” pour une condition ?", "type": "single", "opts": ["La condition n’est pas pertinente pour cette règle", "La condition est impossible", "La règle est invalide", "L’action doit être exécutée"], "ans": [0], "exp": "Le tiret signifie que la valeur de la condition n’influence pas le résultat de cette règle."}, {"q": "Un workflow de commande passe par les états Créée, Validée, Payée, Expédiée, Annulée. Quelle technique est la plus adaptée ?", "type": "single", "opts": ["Partition d’équivalence uniquement", "Couverture des instructions", "Test de transition d’état", "Estimation en trois points"], "ans": [2], "exp": "Les transitions d’état conviennent aux comportements dépendant des états et événements."}, {"q": "Un modèle contient 15 transitions valides. Une suite en exerce 12. Quelle est la couverture des transitions valides ?", "type": "single", "opts": ["80%", "90%", "75%", "60%"], "ans": [0], "exp": "12 / 15 = 80%."}, {"q": "Quelle affirmation est correcte ?", "type": "single", "opts": ["Les deux couvertures sont identiques", "100% de couverture des instructions implique 100% de couverture des branches", "100% de couverture des branches implique 100% de couverture des instructions", "La couverture des branches est une technique boîte noire"], "ans": [2], "exp": "La couverture des branches est plus forte que la couverture des instructions."}, {"q": "Un programme contient 120 instructions exécutables. Les tests en exécutent 90. Quelle est la couverture des instructions ?", "type": "single", "opts": ["60%", "75%", "90%", "80%"], "ans": [1], "exp": "90 / 120 = 75%."}, {"q": "Quelle limite principale des tests boîte blanche est correcte ?", "type": "single", "opts": ["Ils remplacent totalement les tests boîte noire", "Ils peuvent ne pas détecter une exigence totalement omise", "Ils sont toujours impossibles avant le code exécutable", "Ils ne mesurent jamais de couverture"], "ans": [1], "exp": "Si une exigence n’est pas implémentée, la structure existante peut ne pas révéler l’omission."}, {"q": "Quel exemple illustre l’estimation d’erreurs ?", "type": "single", "opts": ["Tester toutes les branches", "Construire une table de décision complète", "Calculer une estimation trois points", "Utiliser l’expérience pour tester des fautes probables comme paramètres manquants ou types incompatibles"], "ans": [3], "exp": "L’estimation d’erreurs s’appuie sur l’expérience des défauts probables."}, {"q": "Dans quels cas le test exploratoire est-il particulièrement utile ?", "type": "multi", "opts": ["Spécifications insuffisantes", "Complément à des tests formels", "Pression de temps élevée", "Absence totale de compétences de test"], "ans": [0, 1, 2], "exp": "Le test exploratoire est utile dans ces contextes, mais il dépend des compétences du testeur."}, {"q": "Une checklist contient “vérifier que l’écran est correct”. Quel est le problème principal ?", "type": "single", "opts": ["L’item est trop général et difficile à vérifier directement", "L’item est une transition valide", "L’item est un critère de sortie obligatoire", "L’item est trop automatisable"], "ans": [0], "exp": "Une checklist doit contenir des éléments vérifiables séparément et directement."}, {"q": "Une User Story est : “En tant que client, je veux sauvegarder mon panier afin de terminer ma commande plus tard.” Quel élément correspond à la valeur métier ?", "type": "single", "opts": ["Sauvegarder mon panier", "Terminer ma commande plus tard", "La base de données panier", "Client"], "ans": [1], "exp": "La valeur métier est le bénéfice attendu pour le rôle."}, {"q": "En ATDD, quel ordre est le plus cohérent ?", "type": "single", "opts": ["Implémentation → critères d’acceptation → suppression des tests", "Atelier de spécification → critères d’acceptation → cas de test → implémentation", "Déploiement → cas de test → User Story", "Code → revue → critères d’entrée uniquement"], "ans": [1], "exp": "ATDD crée les tests d’acceptation à partir des critères avant l’implémentation."}, {"q": "Un plan de test devrait typiquement contenir :", "type": "multi", "opts": ["Critères d’entrée et de sortie", "Liste complète du code source", "Approche de test", "Risques produit et projet"], "ans": [0, 2, 3], "exp": "Le code source complet n’est pas un contenu typique du plan de test."}, {"q": "Estimation trois points : a=10, m=16, b=34. Quelle est E=(a+4m+b)/6 ?", "type": "single", "opts": ["22", "16", "20", "18"], "ans": [3], "exp": "(10 + 64 + 34) / 6 = 108 / 6 = 18."}, {"q": "Avec a=10 et b=34, quelle est SD=(b-a)/6 ?", "type": "single", "opts": ["3", "6", "8", "4"], "ans": [3], "exp": "(34 - 10) / 6 = 24 / 6 = 4."}, {"q": "Une priorisation basée sur la couverture additionnelle choisit ensuite le test qui :", "type": "single", "opts": ["Est le plus ancien", "A déjà la même couverture", "Ajoute le plus d’éléments non encore couverts", "Est le plus court"], "ans": [2], "exp": "La couverture additionnelle maximise la nouvelle couverture apportée à chaque étape."}, {"q": "Dans les quadrants Agile, quel quadrant contient généralement les tests exploratoires et UAT ?", "type": "single", "opts": ["Q1", "Q3", "Q2", "Q4"], "ans": [1], "exp": "Q3 est orienté métier et critique du produit : exploratoire, utilisabilité, UAT."}, {"q": "Un risque a une probabilité de 0,3 et un impact de 10. Quel est son niveau quantitatif ?", "type": "single", "opts": ["10,3", "30", "0,03", "3"], "ans": [3], "exp": "0,3 × 10 = 3."}, {"q": "Quel exemple est un risque projet ?", "type": "single", "opts": ["L’UX provoque des abandons", "Le calcul de remise est faux", "Le système a une vulnérabilité critique", "Le fournisseur de l’environnement de test livre avec retard"], "ans": [3], "exp": "Un risque projet affecte la gestion du projet : planning, ressources, fournisseurs, budget."}, {"q": "Quel exemple est un risque produit ?", "type": "single", "opts": ["Un testeur clé part en congé", "Un algorithme de scoring donne des résultats incorrects", "Un outil CI est indisponible", "Le budget de test est réduit"], "ans": [1], "exp": "Un risque produit concerne la qualité ou le comportement du produit."}, {"q": "Quelles actions peuvent atténuer un risque produit par les tests ?", "type": "multi", "opts": ["Utiliser des techniques adaptées", "Augmenter la couverture sur les zones risquées", "Ignorer le risque si le planning est serré", "Appliquer un niveau d’indépendance approprié"], "ans": [0, 1, 3], "exp": "L’atténuation implique des actions de test adaptées, pas l’ignorance non maîtrisée."}, {"q": "Un rapport d’avancement des tests devrait typiquement inclure :", "type": "multi", "opts": ["Risques nouveaux ou modifiés", "Leçons apprises finales uniquement", "Obstacles et contournements", "Période de test"], "ans": [0, 2, 3], "exp": "Les leçons apprises finales relèvent plutôt du rapport de clôture."}, {"q": "La gestion de configuration aide surtout à :", "type": "single", "opts": ["Identifier, versionner et relier les éléments de test", "Définir la valeur métier", "Choisir les tests exploratoires", "Supprimer les défauts automatiquement"], "ans": [0], "exp": "Elle soutient traçabilité, contrôle des versions et reproductibilité."}, {"q": "Quelle information est essentielle dans un bon rapport de défaut ?", "type": "single", "opts": ["Uniquement la date", "Étapes de reproduction, attendu/réel, environnement et sévérité", "Nom du développeur supposé responsable", "Opinion générale sans preuve"], "ans": [1], "exp": "Un rapport de défaut doit permettre l’analyse, la reproduction, la résolution et le suivi."}, {"q": "Quel risque d’automatisation des tests est réaliste ?", "type": "single", "opts": ["Aucune formation nécessaire", "Garantie de suppression des défauts", "Dépendance excessive à l’outil et maintenance sous-estimée", "Fin définitive des tests manuels"], "ans": [2], "exp": "L’automatisation nécessite effort, formation, maintenance et jugement humain."}];
+let current = 0;
+let answers = Array.from({length: questions.length}, () => []);
+let remaining = 60 * 60;
+let submitted = false;
+
+function sameArray(a,b) {
+  a = [...a].sort((x,y)=>x-y); b = [...b].sort((x,y)=>x-y);
+  return a.length === b.length && a.every((v,i)=>v===b[i]);
+}
+function esc(s) {
+  return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+}
+function renderQuestion() {
+  const q = questions[current];
+  document.getElementById('qcount').textContent = `Question ${current+1} / ${questions.length}`;
+  document.getElementById('qtype').textContent = q.type === 'multi' ? 'Plusieurs réponses possibles' : 'Une seule réponse';
+  document.getElementById('question').textContent = q.q;
+  document.getElementById('progress').style.width = `${((current+1)/questions.length)*100}%`;
+  const options = document.getElementById('options');
+  options.innerHTML = '';
+  q.opts.forEach((opt, i) => {
+    const selected = answers[current].includes(i);
+    const label = document.createElement('label');
+    label.className = 'option' + (selected ? ' selected' : '');
+    const type = q.type === 'multi' ? 'checkbox' : 'radio';
+    label.innerHTML = `<input type="${type}" name="q" value="${i}" ${selected?'checked':''}> <span><b>${String.fromCharCode(65+i)}.</b> ${esc(opt)}</span>`;
+    label.onclick = () => selectAnswer(i);
+    options.appendChild(label);
+  });
+  document.getElementById('prevBtn').disabled = current === 0;
+  document.getElementById('nextBtn').style.display = current === questions.length - 1 ? 'none' : 'inline-block';
+  document.getElementById('submitBtn').style.display = current === questions.length - 1 ? 'inline-block' : 'none';
+  renderGrid();
+}
+function selectAnswer(i) {
+  const q = questions[current];
+  if (q.type === 'single') answers[current] = [i];
+  else {
+    if (answers[current].includes(i)) answers[current] = answers[current].filter(x => x !== i);
+    else answers[current].push(i);
+  }
+  renderQuestion();
+}
+function nextQuestion() { if (current < questions.length - 1) { current++; renderQuestion(); } }
+function prevQuestion() { if (current > 0) { current--; renderQuestion(); } }
+function goTo(i) { current = i; renderQuestion(); }
+function renderGrid() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  questions.forEach((_, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'jump' + (i === current ? ' current' : '') + (answers[i].length ? ' answered' : '');
+    btn.textContent = i + 1;
+    btn.onclick = () => goTo(i);
+    grid.appendChild(btn);
+  });
+}
+function tick() {
+  const m = Math.floor(remaining / 60);
+  const s = remaining % 60;
+  document.getElementById('timer').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  if (remaining <= 0) submitExam();
+  remaining--;
+}
+function submitExam() {
+  if (submitted) return;
+  submitted = true;
+  clearInterval(clock);
+  let score = 0, answered = 0, review = '';
+  questions.forEach((q, i) => {
+    const ok = sameArray(answers[i], q.ans);
+    if (answers[i].length) answered++;
+    if (ok) score++;
+    const your = answers[i].length ? answers[i].sort((a,b)=>a-b).map(n => `${String.fromCharCode(65+n)}. ${esc(q.opts[n])}`).join('<br>') : '<i>Aucune réponse</i>';
+    const good = q.ans.sort((a,b)=>a-b).map(n => `${String.fromCharCode(65+n)}. ${esc(q.opts[n])}`).join('<br>');
+    review += `<div class="review ${ok?'ok':'ko'}">
+      <b>Q${i+1} — ${ok?'✅ Correct':'❌ Incorrect'}</b><br>
+      <span class="small">Ta réponse :</span><br>${your}<br>
+      <span class="small">Bonne réponse :</span><br>${good}<br>
+      <span class="small">Explication :</span> ${q.exp}
+    </div>`;
+  });
+  const percent = Math.round((score / questions.length) * 100);
+  const passed = percent >= 65;
+  document.getElementById('exam').style.display = 'none';
+  const result = document.getElementById('result');
+  result.style.display = 'block';
+  result.innerHTML = `
+    <h2>Résultat final</h2>
+    <div class="score ${passed?'pass':'fail'}">${percent}%</div>
+    <h3>${passed?'✅ Réussi':'❌ Échec'} — ${score} / 40</h3>
+    <p>Questions répondues : ${answered} / 40. Seuil de réussite : 65%.</p>
+    ${answered < 40 ? '<div class="warning">Attention : certaines questions n’ont pas été répondues.</div>' : ''}
+    <button class="next" onclick="location.reload()">Recommencer</button>
+    <h3>Correction détaillée</h3>
+    ${review}
+  `;
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+renderQuestion();
+tick();
+const clock = setInterval(tick, 1000);
+</script>
+</body>
+</html>

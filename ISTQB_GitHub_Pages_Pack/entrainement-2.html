@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ISTQB CTFL v4.0 — Examen d'entraînement personnalisé</title>
+<style>
+:root {
+  --bg:#eef2f7; --card:#ffffff; --text:#1f2937; --muted:#6b7280; --blue:#2563eb;
+  --blue2:#1d4ed8; --green:#16a34a; --red:#dc2626; --border:#dbe3ef;
+}
+* { box-sizing:border-box; }
+body { margin:0; font-family:Arial, Helvetica, sans-serif; background:var(--bg); color:var(--text); }
+.header { background:#1e293b; color:white; padding:18px 24px; box-shadow:0 2px 10px rgba(0,0,0,.18); position:sticky; top:0; z-index:99; }
+.header-inner { max-width:980px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; gap:14px; }
+h1 { margin:0; font-size:24px; }
+.timer { font-size:24px; font-weight:bold; color:#facc15; background:#0f172a; padding:10px 16px; border-radius:10px; min-width:110px; text-align:center; }
+.container { max-width:980px; margin:24px auto; padding:0 18px; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:16px; box-shadow:0 8px 24px rgba(15,23,42,.08); padding:24px; }
+.meta { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+.badge { background:#dbeafe; color:#1e40af; padding:7px 10px; border-radius:999px; font-size:13px; font-weight:bold; }
+.progress-wrap { background:#e5e7eb; height:12px; border-radius:999px; overflow:hidden; margin:14px 0 22px; }
+.progress { height:100%; background:var(--blue); width:0%; transition:.25s; }
+.qtop { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:10px; color:var(--muted); }
+.qtype { font-weight:bold; color:#475569; }
+.question-title { font-size:20px; font-weight:bold; margin:16px 0 20px; line-height:1.45; white-space:pre-line; }
+.option { display:flex; gap:12px; align-items:flex-start; padding:14px; margin:11px 0; border:2px solid #e5e7eb; border-radius:12px; cursor:pointer; background:#f9fafb; transition:.15s; white-space:pre-line; }
+.option:hover { border-color:#93c5fd; background:#eff6ff; }
+.option input { margin-top:2px; transform:scale(1.2); }
+.option.selected { border-color:var(--blue); background:#eff6ff; }
+.nav { display:flex; justify-content:space-between; gap:12px; margin-top:24px; }
+button { border:0; border-radius:10px; padding:13px 18px; font-weight:bold; font-size:15px; cursor:pointer; }
+button:disabled { opacity:.45; cursor:not-allowed; }
+.prev { background:#e5e7eb; color:#374151; }
+.next { background:var(--blue); color:white; }
+.next:hover { background:var(--blue2); }
+.submit { background:var(--green); color:white; }
+.grid { display:grid; grid-template-columns:repeat(10,1fr); gap:8px; margin-top:18px; }
+.jump { padding:9px 0; border-radius:8px; background:#e5e7eb; color:#374151; font-size:13px; }
+.jump.current { background:var(--blue); color:white; }
+.jump.answered { background:#bbf7d0; color:#166534; }
+.result { display:none; }
+.score { font-size:48px; font-weight:900; margin:10px 0; }
+.pass { color:var(--green); } .fail { color:var(--red); }
+.review { border-left:5px solid #94a3b8; background:#f8fafc; padding:14px; border-radius:10px; margin:12px 0; }
+.review.ok { border-left-color:var(--green); }
+.review.ko { border-left-color:var(--red); }
+.small { color:var(--muted); font-size:14px; }
+.warning { background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; padding:12px; border-radius:12px; margin:12px 0; }
+@media(max-width:700px) {
+  .header-inner { flex-direction:column; align-items:flex-start; }
+  .grid { grid-template-columns:repeat(5,1fr); }
+  .nav { flex-direction:column; }
+}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-inner">
+    <div>
+      <h1>ISTQB CTFL v4.0 — Examen d'entraînement</h1>
+      <div class="small" style="color:#cbd5e1">40 questions originales inspirées des examens blancs — 60 min</div>
+    </div>
+    <div class="timer" id="timer">60:00</div>
+  </div>
+</div>
+
+<div class="container">
+  <div id="exam" class="card">
+    <div class="meta">
+      <span class="badge">40 questions</span>
+      <span class="badge">60 minutes</span>
+      <span class="badge">Seuil 65%</span>
+      <span class="badge">Réponses variées</span>
+    </div>
+    <div class="progress-wrap"><div class="progress" id="progress"></div></div>
+    <div class="qtop">
+      <span id="qcount"></span>
+      <span class="qtype" id="qtype"></span>
+    </div>
+    <div class="question-title" id="question"></div>
+    <div id="options"></div>
+    <div class="nav">
+      <button class="prev" id="prevBtn" onclick="prevQuestion()">← Précédent</button>
+      <button class="next" id="nextBtn" onclick="nextQuestion()">Suivant →</button>
+      <button class="submit" id="submitBtn" onclick="submitExam()" style="display:none">Valider l’examen</button>
+    </div>
+    <div class="grid" id="grid"></div>
+  </div>
+  <div id="result" class="card result"></div>
+</div>
+
+<script>
+const questions = [{"q": "Une équipe affirme qu’après 100% de cas de test réussis, le logiciel ne contient plus aucun défaut. Quel principe ISTQB est le mieux illustré ?", "type": "single", "opts": ["Le test dépend du contexte", "L’usure des tests", "Le regroupement des défauts", "Le test montre la présence de défauts, pas leur absence"], "ans": [3], "exp": "Même si tous les tests passent, cela ne prouve pas l’absence de défauts."}, {"q": "Dans une application bancaire, une exigence mal comprise conduit à un calcul erroné d’intérêts en production. Quelle chaîne est la plus correcte ?", "type": "single", "opts": ["Erreur humaine → défaut dans l’exigence/code → défaillance observée", "Test → débogage → erreur", "Défaut → cause racine → validation", "Défaillance → erreur humaine → test"], "ans": [0], "exp": "Une erreur humaine peut introduire un défaut dans un artefact, qui peut provoquer une défaillance lorsqu’il est exécuté."}, {"q": "Quels sont des objectifs habituels du test ?", "type": "multi", "opts": ["Réduire le niveau de risque d’une qualité insuffisante", "Fournir des informations aux parties prenantes", "Prouver que le logiciel ne contient aucun défaut", "Vérifier la conformité à des exigences réglementaires"], "ans": [0, 1, 3], "exp": "Le test réduit le risque, informe, vérifie la conformité ; il ne prouve pas zéro défaut."}, {"q": "Un développeur reproduit une défaillance, localise la cause dans le code et la corrige. De quelle activité s’agit-il principalement ?", "type": "single", "opts": ["Clôture des tests", "Analyse de test", "Débogage", "Exécution des tests"], "ans": [2], "exp": "Le débogage comprend reproduction, diagnostic et correction de la cause."}, {"q": "Une revue de spécification détecte une règle contradictoire avant l’écriture du code. Quel énoncé est juste ?", "type": "single", "opts": ["C’est une défaillance", "Ce n’est pas lié au test", "C’est du test dynamique", "C’est du test statique"], "ans": [3], "exp": "Le test statique permet de détecter des défauts sans exécuter le logiciel."}, {"q": "Dans un projet Agile, des incréments sont livrés toutes les deux semaines. Quelle conséquence sur les tests est la plus probable ?", "type": "single", "opts": ["Suppression des tests statiques", "Aucun test dynamique avant la fin", "Besoin de feedback rapide et de régression fréquente", "Documentation exhaustive obligatoire"], "ans": [2], "exp": "Les cycles itératifs/incrémentaux nécessitent feedback rapide et régression régulière."}, {"q": "Quel exemple illustre le mieux le shift-left ?", "type": "single", "opts": ["Supprimer la gestion de configuration", "Tester uniquement en production", "Revoir les exigences dès leur première version", "Reporter les tests non fonctionnels à la fin"], "ans": [2], "exp": "Le shift-left consiste à déplacer certaines activités de test plus tôt dans le SDLC."}, {"q": "Quelle affirmation décrit correctement ATDD ?", "type": "single", "opts": ["Les tests sont créés à partir des critères d’acceptation avant l’implémentation", "Les tests remplacent les User Stories", "Les tests sont dérivés uniquement du code source", "Les tests sont toujours réalisés après la production"], "ans": [0], "exp": "ATDD utilise les critères d’acceptation pour guider le développement."}, {"q": "Un test vérifie que l’interface entre le système de commande et le service de paiement externe fonctionne. Quel niveau de test est principalement concerné ?", "type": "single", "opts": ["Test de composants", "Test d’intégration système", "Test d’acceptation alpha", "Test boîte blanche"], "ans": [1], "exp": "L’intégration système teste les interfaces avec d’autres systèmes ou services externes."}, {"q": "Un test vérifie qu’une recherche retourne un résultat en moins de deux secondes. Quel type de test est principalement concerné ?", "type": "single", "opts": ["Test boîte blanche uniquement", "Test fonctionnel", "Test non fonctionnel", "Test de confirmation"], "ans": [2], "exp": "Le temps de réponse est une caractéristique non fonctionnelle."}, {"q": "Un défaut corrigé est revérifié en réexécutant le test qui avait échoué. C’est :", "type": "single", "opts": ["Un test exploratoire", "Un test de confirmation", "Un test de régression", "Un test d’acceptation"], "ans": [1], "exp": "Le test de confirmation vérifie que le défaut original est corrigé."}, {"q": "Après correction d’un défaut dans la facturation, l’équipe teste les modules paiement, remboursement et reporting. C’est surtout :", "type": "single", "opts": ["Une revue informelle", "Un test de confirmation uniquement", "Un test de régression", "Un test statique"], "ans": [2], "exp": "La régression vérifie qu’une modification n’a pas causé d’effets négatifs ailleurs."}, {"q": "Quel est un avantage du feedback précoce et fréquent pendant les revues ?", "type": "single", "opts": ["Éviter les malentendus sur les exigences", "Éliminer la gestion des défauts", "Prouver que les défauts n’existent pas", "Remplacer les tests dynamiques"], "ans": [0], "exp": "Le feedback précoce réduit les incompréhensions et les corrections tardives."}, {"q": "Une revue avec préparation individuelle, scribe, rapport et réunion dirigée par l’auteur ressemble le plus à :", "type": "single", "opts": ["Une analyse statique automatisée", "Un test exploratoire", "Une inspection stricte", "Une relecture technique"], "ans": [3], "exp": "Ces caractéristiques correspondent typiquement à une relecture technique dans le syllabus."}, {"q": "Un champ accepte les âges entiers de 18 à 65 inclus. Quelles valeurs couvrent les limites en BVA 2 valeurs ?", "type": "multi", "opts": ["66", "65", "18", "17"], "ans": [0, 1, 2, 3], "exp": "En BVA 2 valeurs, on teste chaque limite et sa voisine dans la partition adjacente."}, {"q": "Un formulaire possède deux critères indépendants : navigateur {Chrome, Firefox, Safari} et langue {FR, EN}. Combien de tests peuvent suffire pour une couverture Each Choice minimale ?", "type": "single", "opts": ["3", "6", "2", "5"], "ans": [0], "exp": "Trois tests peuvent couvrir les trois navigateurs et les deux langues au moins une fois."}, {"q": "Une table de décision avec 4 conditions booléennes indépendantes contient combien de règles avant réduction ?", "type": "single", "opts": ["16", "8", "4", "12"], "ans": [0], "exp": "Avec 4 conditions booléennes : 2^4 = 16 combinaisons."}, {"q": "Dans une table de décision, que représente généralement une colonne réalisable ?", "type": "single", "opts": ["Une instruction de code", "Une anomalie", "Un état final uniquement", "Une règle de décision à couvrir"], "ans": [3], "exp": "Les éléments de couverture des tables de décision sont les colonnes/règles réalisables."}, {"q": "Un système de réservation peut être dans les états Brouillon, Confirmé, Annulé, Payé. Quelle technique est la plus adaptée ?", "type": "single", "opts": ["Couverture des instructions", "Test de checklist uniquement", "Test de transition d’état", "Partition d’équivalence uniquement"], "ans": [2], "exp": "Les transitions d’état conviennent quand le comportement dépend des états et événements."}, {"q": "Une suite visite 4 états sur 5 dans un modèle d’état. Quelle est la couverture de tous les états ?", "type": "single", "opts": ["60%", "80%", "75%", "100%"], "ans": [1], "exp": "4 / 5 = 80%."}, {"q": "Une suite couvre 18 branches sur 24. Quelle est la couverture des branches ?", "type": "single", "opts": ["66%", "80%", "75%", "24%"], "ans": [2], "exp": "18 / 24 = 75%."}, {"q": "Quelle affirmation est correcte concernant la couverture des branches ?", "type": "single", "opts": ["100% branches implique 100% instructions", "100% instructions implique toujours 100% branches", "Les deux sont identiques", "La couverture des branches est boîte noire"], "ans": [0], "exp": "La couverture des branches englobe la couverture des instructions, mais pas l’inverse."}, {"q": "Quel exemple illustre l’estimation d’erreurs ?", "type": "single", "opts": ["Concevoir des tests ciblant des fautes typiques comme paramètres manquants ou division par zéro", "Calculer 100% des branches", "Réduire une table de décision", "Écrire uniquement des tests Given/When/Then"], "ans": [0], "exp": "L’estimation d’erreurs utilise l’expérience pour anticiper les défauts probables."}, {"q": "Quand le test exploratoire est-il particulièrement utile ?", "type": "multi", "opts": ["Spécifications faibles ou incomplètes", "Pression de temps élevée", "Quand aucune compétence de test n’est disponible", "Complément à des techniques formelles"], "ans": [0, 1, 3], "exp": "Le test exploratoire est utile dans ces contextes, mais dépend fortement des compétences du testeur."}, {"q": "Quels sont les 3 C d’une User Story ?", "type": "single", "opts": ["Client, Contrat, Correction", "Carte, Conversation, Confirmation", "Code, Critère, Couverture", "Condition, Cas, Clôture"], "ans": [1], "exp": "Les User Stories reposent sur Carte, Conversation et Confirmation."}, {"q": "Quel format est typique d’un critère d’acceptation orienté scénario ?", "type": "single", "opts": ["Open/Closed/Reopened", "Given/When/Then", "If/Else/Return", "Try/Catch/Finally"], "ans": [1], "exp": "Given/When/Then est un format fréquent pour les critères orientés scénario."}, {"q": "Quel élément appartient typiquement à un plan de test ?", "type": "single", "opts": ["Uniquement les captures d’écran de défaut", "Uniquement le code source", "Uniquement les résultats finaux", "Approche de test, risques, calendrier et critères d’entrée/sortie"], "ans": [3], "exp": "Un plan de test décrit notamment objectifs, ressources, risques, approche, calendrier et critères."}, {"q": "Dans une estimation trois points, a=6, m=9, b=18. Quelle est l’estimation E=(a+4m+b)/6 ?", "type": "single", "opts": ["12", "10", "11", "9"], "ans": [1], "exp": "E=(6+36+18)/6=60/6=10."}, {"q": "En priorisation basée sur les risques, quel test exécuter d’abord ?", "type": "single", "opts": ["Celui couvrant le risque le plus élevé", "Celui écrit en dernier", "Celui sans données", "Celui qui est le plus simple"], "ans": [0], "exp": "Les tests couvrant les risques les plus importants sont exécutés en premier."}, {"q": "Dans la pyramide des tests, les tests de bas niveau sont généralement :", "type": "single", "opts": ["Nombreux, rapides et isolés", "Rares, lents et bout-en-bout", "Toujours manuels", "Uniquement exploratoires"], "ans": [0], "exp": "La base de la pyramide contient beaucoup de tests petits, rapides et isolés."}, {"q": "Un risque a une probabilité de 0,5 et un impact de 8. Quel est son niveau de risque quantitatif ?", "type": "single", "opts": ["8,5", "4", "16", "0,0625"], "ans": [1], "exp": "0,5 × 8 = 4."}, {"q": "Quel exemple est un risque projet ?", "type": "single", "opts": ["Un manque de testeurs qualifiés", "Un temps de réponse inadéquat", "Une vulnérabilité de sécurité", "Un calcul métier incorrect"], "ans": [0], "exp": "Les risques projet affectent planning, budget, ressources, compétences, fournisseurs."}, {"q": "Quel exemple est un risque produit ?", "type": "single", "opts": ["Une estimation inexacte", "Un conflit d’équipe", "Un retard de livraison d’environnement", "Une fonctionnalité de paiement incorrecte"], "ans": [3], "exp": "Les risques produit concernent la qualité du produit livré."}, {"q": "Quel rapport est produit régulièrement pendant l’exécution pour informer les parties prenantes ?", "type": "single", "opts": ["Rapport de défaut uniquement", "Rapport de clôture uniquement", "Rapport d’avancement des tests", "Plan de test initial"], "ans": [2], "exp": "Le rapport d’avancement communique l’état, les métriques, les risques et les obstacles pendant les tests."}, {"q": "Quel contenu est typique d’un rapport de clôture des tests ?", "type": "multi", "opts": ["Risques non atténués et défauts non corrigés", "Écarts par rapport au plan", "Résumé du test", "Nouvelle architecture détaillée du produit"], "ans": [0, 1, 2], "exp": "Le rapport de clôture résume résultats, écarts, obstacles, métriques, risques, défauts et leçons apprises."}, {"q": "La gestion de configuration soutient les tests principalement en :", "type": "single", "opts": ["Remplaçant les rapports de défaut", "Identifiant, versionnant et reliant les éléments de test", "Supprimant la traçabilité", "Choisissant la priorité métier"], "ans": [1], "exp": "Elle permet le contrôle des versions, la traçabilité et la reproductibilité."}, {"q": "Un rapport de défaut utile doit contenir :", "type": "single", "opts": ["Étapes de reproduction, attendu/réel, environnement et sévérité", "Uniquement le score de test", "Uniquement une capture sans contexte", "Uniquement le nom du développeur"], "ans": [0], "exp": "Un bon rapport permet de reproduire, analyser, prioriser et suivre l’anomalie."}, {"q": "Quels sont des avantages potentiels de l’automatisation des tests ?", "type": "multi", "opts": ["Mesures objectives comme la couverture", "Réduction du travail répétitif", "Garantie de trouver tous les défauts", "Cohérence et répétabilité"], "ans": [0, 1, 3], "exp": "L’automatisation apporte ces avantages mais ne garantit pas de trouver tous les défauts."}, {"q": "Quel est un risque réaliste de l’automatisation des tests ?", "type": "single", "opts": ["Disparition du besoin de pensée critique", "Suppression de toute maintenance", "Succès garanti dès l’achat", "Dépendance excessive à l’outil et attentes irréalistes"], "ans": [3], "exp": "Un outil demande maintenance, formation, effort et ne remplace pas l’analyse humaine."}, {"q": "Dans quel cas un tableur peut-il être considéré comme un outil de test ?", "type": "single", "opts": ["Jamais", "Uniquement pour la performance", "Uniquement s’il exécute du code", "Lorsqu’il aide réellement une activité de test dans le contexte"], "ans": [3], "exp": "Tout outil aidant les tests peut être considéré comme outil de test dans son contexte."}];
+let current = 0;
+let answers = Array.from({length: questions.length}, () => []);
+let remaining = 60 * 60;
+let submitted = false;
+
+function sameArray(a,b) {
+  a = [...a].sort((x,y)=>x-y); b = [...b].sort((x,y)=>x-y);
+  return a.length === b.length && a.every((v,i)=>v===b[i]);
+}
+function esc(s) {
+  return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+}
+function renderQuestion() {
+  const q = questions[current];
+  document.getElementById('qcount').textContent = `Question ${current+1} / ${questions.length}`;
+  document.getElementById('qtype').textContent = q.type === 'multi' ? 'Plusieurs réponses possibles' : 'Une seule réponse';
+  document.getElementById('question').textContent = q.q;
+  document.getElementById('progress').style.width = `${((current+1)/questions.length)*100}%`;
+  const options = document.getElementById('options');
+  options.innerHTML = '';
+  q.opts.forEach((opt, i) => {
+    const selected = answers[current].includes(i);
+    const label = document.createElement('label');
+    label.className = 'option' + (selected ? ' selected' : '');
+    const type = q.type === 'multi' ? 'checkbox' : 'radio';
+    label.innerHTML = `<input type="${type}" name="q" value="${i}" ${selected?'checked':''}> <span><b>${String.fromCharCode(65+i)}.</b> ${esc(opt)}</span>`;
+    label.onclick = () => selectAnswer(i);
+    options.appendChild(label);
+  });
+  document.getElementById('prevBtn').disabled = current === 0;
+  document.getElementById('nextBtn').style.display = current === questions.length - 1 ? 'none' : 'inline-block';
+  document.getElementById('submitBtn').style.display = current === questions.length - 1 ? 'inline-block' : 'none';
+  renderGrid();
+}
+function selectAnswer(i) {
+  const q = questions[current];
+  if (q.type === 'single') answers[current] = [i];
+  else {
+    if (answers[current].includes(i)) answers[current] = answers[current].filter(x => x !== i);
+    else answers[current].push(i);
+  }
+  renderQuestion();
+}
+function nextQuestion() { if (current < questions.length - 1) { current++; renderQuestion(); } }
+function prevQuestion() { if (current > 0) { current--; renderQuestion(); } }
+function goTo(i) { current = i; renderQuestion(); }
+function renderGrid() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  questions.forEach((_, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'jump' + (i === current ? ' current' : '') + (answers[i].length ? ' answered' : '');
+    btn.textContent = i + 1;
+    btn.onclick = () => goTo(i);
+    grid.appendChild(btn);
+  });
+}
+function tick() {
+  const m = Math.floor(remaining / 60);
+  const s = remaining % 60;
+  document.getElementById('timer').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  if (remaining <= 0) submitExam();
+  remaining--;
+}
+function submitExam() {
+  if (submitted) return;
+  submitted = true;
+  clearInterval(clock);
+  let score = 0, answered = 0, review = '';
+  questions.forEach((q, i) => {
+    const ok = sameArray(answers[i], q.ans);
+    if (answers[i].length) answered++;
+    if (ok) score++;
+    const your = answers[i].length ? answers[i].sort((a,b)=>a-b).map(n => `${String.fromCharCode(65+n)}. ${esc(q.opts[n])}`).join('<br>') : '<i>Aucune réponse</i>';
+    const good = q.ans.sort((a,b)=>a-b).map(n => `${String.fromCharCode(65+n)}. ${esc(q.opts[n])}`).join('<br>');
+    review += `<div class="review ${ok?'ok':'ko'}">
+      <b>Q${i+1} — ${ok?'✅ Correct':'❌ Incorrect'}</b><br>
+      <span class="small">Ta réponse :</span><br>${your}<br>
+      <span class="small">Bonne réponse :</span><br>${good}<br>
+      <span class="small">Explication :</span> ${q.exp}
+    </div>`;
+  });
+  const percent = Math.round((score / questions.length) * 100);
+  const passed = percent >= 65;
+  document.getElementById('exam').style.display = 'none';
+  const result = document.getElementById('result');
+  result.style.display = 'block';
+  result.innerHTML = `
+    <h2>Résultat final</h2>
+    <div class="score ${passed?'pass':'fail'}">${percent}%</div>
+    <h3>${passed?'✅ Réussi':'❌ Échec'} — ${score} / 40</h3>
+    <p>Questions répondues : ${answered} / 40. Seuil de réussite : 65%.</p>
+    ${answered < 40 ? '<div class="warning">Attention : certaines questions n’ont pas été répondues.</div>' : ''}
+    <button class="next" onclick="location.reload()">Recommencer</button>
+    <h3>Correction détaillée</h3>
+    ${review}
+  `;
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+renderQuestion();
+tick();
+const clock = setInterval(tick, 1000);
+</script>
+</body>
+</html>
